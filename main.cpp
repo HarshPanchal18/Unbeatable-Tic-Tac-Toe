@@ -12,7 +12,6 @@ using namespace std;
 #define pb push_back
 #define endl "\n"
 
-// https://github.com/potter1024
 /*
 #define input(a, n)                   \
     for (long long i = 0; i < n; i++) \
