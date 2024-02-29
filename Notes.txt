@@ -1,0 +1,463 @@
+The AI evaluates possible moves in Tic-Tac-Toe using a decision-making algorithm called Minimax. Here’s a high-level overview of how it works:
+
+Generate the Game Tree: The AI generates a tree of all possible game states, starting from the current state and going several moves into the future. Each node in the tree represents a possible state of the game, and each edge represents a move.
+Evaluate Terminal Nodes: The AI evaluates the game states at the terminal nodes of the tree (i.e., the nodes that represent game states where the game has ended). It assigns a score to each terminal node: a high score for states where the AI wins, a low score for states where the AI loses, and a medium score for draws.
+Propagate Scores Up the Tree: The AI then propagates these scores up the tree. At each node, the AI assumes that both players will play optimally: the AI will try to maximize its score, and the human player will try to minimize the AI’s score. So, at each node, the AI chooses the move that leads to the highest score if it’s the AI’s turn, and the move that leads to the lowest score if it’s the human’s turn.
+Choose the Optimal Move: Finally, the AI chooses the move that leads to the highest score at the root of the tree (i.e., the current game state).
+This process allows the AI to look ahead and consider all possible sequences of moves, and to make the move that leads to the best possible outcome assuming optimal play from both players. It’s a form of adversarial search, and is a fundamental technique in game-playing AI
+
+You
+Can you help me to understand a code which I give?
+
+Copilot
+Absolutely! Please provide the code you’d like me to help with, and I’ll do my best to explain it to you.
+
+You
+data class Board(
+    val array: Array<CharArray> = Array(3) { CharArray(3) { '-' } },
+    var score: Int = 0,
+    var index: Int = 0,
+)
+
+// Terminal state check
+fun check(board: Board): Char {
+    for (i in 0..<3) {
+
+        var count = 0
+        for (j in 0..<3)
+            if (board.array[i][j] == 'X')
+                count++
+
+        if (count == 3)
+            return 'X'
+
+        count = 0
+        for (j in 0..<3)
+            if (board.array[i][j] == 'O')
+                count++
+
+        if (count == 3)
+            return 'O'
+
+        count = 0
+        for (j in 0..<3)
+            if (board.array[j][i] == 'O')
+                count++
+
+        if (count == 3)
+            return 'O'
+
+        count = 0
+        for (j in 0..<3)
+            if (board.array[j][i] == 'X')
+                count++
+
+        if (count == 3)
+            return 'X'
+
+    }
+
+    if (board.array[0][0] == 'X' && board.array[1][1] == 'X' && board.array[2][2] == 'X')
+        return 'X'
+
+    if (board.array[0][0] == 'O' && board.array[1][1] == 'O' && board.array[2][2] == 'O')
+        return 'O'
+
+    if (board.array[0][2] == 'X' && board.array[1][1] == 'X' && board.array[2][0] == 'X')
+        return 'X'
+
+    if (board.array[0][2] == 'O' && board.array[1][1] == 'O' && board.array[2][0] == 'O')
+        return 'O'
+
+    var count = 0
+    for (i in 0..<3)
+        for (j in 0..<3)
+            if (board.array[i][j] == '-')
+                count++
+
+    return if (count == 0) 'D'
+    else '-'
+
+}
+
+var len = 0
+var win = 0
+var lose = 0
+var draw = 0
+val store = mutableListOf<Board>()
+val mapping = mutableMapOf<Int, Int>()
+val game = MutableList(1000000) { mutableListOf<Int>() }
+
+// Build game tree
+fun build(board: Board, turn: Char, index: Int, depth: Int) {
+    if (check(board) == 'X') {
+        store[mapping[index]!!].score = 10
+        win++
+        return
+    }
+
+    if (check(board) == 'O') {
+        store[mapping[index]!!].score = -10
+        lose++
+        return
+    }
+
+    if (check(board) == 'D') {
+        store[mapping[index]!!].score = 0
+        draw++
+        return
+    }
+
+    var maximum = -10_000
+    var minimum = 10_000
+
+    if (turn == 'C') {
+        for (i in 0..<3) {
+            for (j in 0..<3) {
+                if (board.array[i][j] == '-') {
+                    val next = Board()
+                    for (k in 0..<3)
+                        next.array[k] = board.array[k].clone()
+
+                    next.array[i][j] = 'X'
+                    next.index = len
+                    store.add(next)
+                    mapping[len] = store.size - 1
+                    len++
+                    game[index].add(len - 1)
+                    val x = len - 1
+                    build(next, 'P', len - 1, depth + 1)
+                    maximum = max(maximum, store[mapping[x]!!].score)
+                }
+            }
+        }
+        store[mapping[index]!!].score = maximum - depth
+    }
+
+    if (turn == 'P') {
+        for (i in 0..<3) {
+            for (j in 0..<3) {
+                if (board.array[i][j] == '-') {
+                    val next = Board()
+                    for (k in 0..<3)
+                        next.array[k] = board.array[k].clone()
+
+                    next.array[i][j] = 'O'
+                    next.index = len
+                    store.add(next)
+                    mapping[len] = store.size - 1
+                    len++
+                    game[index].add(len - 1)
+                    val x = len - 1
+                    build(next, 'C', len - 1, depth + 1)
+                    minimum = min(minimum, store[mapping[x]!!].score)
+                }
+            }
+        }
+        store[mapping[index]!!].score = minimum + depth
+    }
+}
+
+fun printBoard(board: Board) {
+    for (i in 0..<3) {
+        for (j in 0..<3)
+            print("${board.array[i][j]} ")
+        println()
+    }
+    println()
+}
+
+Copilot
+Sure, I’d be happy to explain this code. It’s a Kotlin implementation of a game tree for a game of Tic-Tac-Toe. Here’s a breakdown:
+
+Board is a data class that represents the game board. It has three properties:
+array: a 3x3 array of characters representing the game board. It’s initialized with ‘-’ to represent empty spaces.
+score: an integer representing the score of the board. It’s used in the game tree to evaluate the desirability of a state.
+index: an integer representing the index of the board in the game tree.
+check(board: Board): Char is a function that checks if a game board is in a terminal state (i.e., the game is over). It returns ‘X’ if player X has won, ‘O’ if player O has won, ‘D’ if the game is a draw, and ‘-’ if the game is not over yet.
+build(board: Board, turn: Char, index: Int, depth: Int) is a function that builds the game tree. It recursively generates all possible game states from the current board state. It also updates the score property of each Board object based on whether it’s a winning, losing, or drawing state. The turn parameter indicates whose turn it is (‘C’ for computer/X and ‘P’ for player/O).
+printBoard(board: Board) is a function that prints the current state of the game board.
+The variables len, win, lose, draw, store, mapping, and game are used to build and navigate the game tree. Specifically, store is a list of all Board objects, mapping is a map from indices to Board objects, and game is a list of lists representing the game tree.
+
+You
+The rest of code Is:
+
+fun compare(b1: Board, b2: Board): Boolean {
+    var count = 0
+
+    for (i in 0..<3)
+        for (j in 0..<3)
+            if (b1.array[i][j] == b2.array[i][j])
+                count++
+
+    return count == 9
+}
+
+// Exit condition
+fun over(board: Board): Boolean {
+    if (check(board) == 'X') {
+        printBoard(board)
+        println("You lost! HA-HA-HA-HA-HA-HA-HA")
+        return true
+    } else return if (check(board) == 'D') {
+        printBoard(board)
+        println("We got a Tie match!")
+        true
+    } else if (check(board) == 'O') {
+        printBoard(board)
+        println("You win!")
+        true
+    } else false
+}
+
+fun main() {
+    var board = Board()
+    board.index = 0
+    store.add(board)
+    mapping[0] = 0
+    store.add(board)
+    len++
+
+    build(board, 'P', 0, 0)
+    val m = mutableMapOf<Int, Pair<Int, Int>>()
+
+    /*1 2 3
+      4 5 6
+      7 8 9*/
+
+    m[1] = Pair(0, 0)
+    m[2] = Pair(0, 1)
+    m[3] = Pair(0, 2)
+    m[4] = Pair(1, 0)
+    m[5] = Pair(1, 1)
+    m[6] = Pair(1, 2)
+    m[7] = Pair(2, 0)
+    m[8] = Pair(2, 1)
+    m[9] = Pair(2, 2)
+
+    println("You can't beat me, but you can try!!")
+
+    println("Position map: ")
+    var position = 1
+    for (i in 0..<3) {
+        for (j in 0..<3)
+            print("${position++} ")
+        println()
+    }
+    println()
+
+    while (true) {
+
+        if (over(board))
+            return
+
+        for (i in 0..<3) {
+            for (j in 0..<3)
+                print("${board.array[i][j]} ")
+            println()
+        }
+        println()
+
+        print("Enter your move: ")
+        var choose = readln().toInt()
+
+        while (choose !in 1..9) {
+            print("Invalid move, Enter again: ")
+            choose = readln().toInt()
+        }
+
+        var i = m[choose]?.first
+        var j = m[choose]?.second
+
+        while (board.array[i!!][j!!] != '-') {
+            print("Invalid move, Enter again: ")
+            choose = readln().toInt()
+            i = m[choose]?.first
+            j = m[choose]?.second
+        }
+
+        board.array[i][j] = 'O'
+
+        if (over(board)) return
+
+        for (ij in 0..<game[board.index].size) {
+            if (compare(board, store[mapping[game[board.index][ij]]!!])) {
+                board = store[mapping[game[board.index][ij]]!!]
+
+                var ma = -1
+                var temp = Board()
+
+                for (jk in 0..<game[board.index].size) {
+                    if (store[mapping[game[board.index][jk]]!!].score > ma) {
+                        ma = store[mapping[game[board.index][jk]]!!].score
+                        temp = store[mapping[game[board.index][jk]]!!]
+                    }
+                }
+                board = temp
+                break
+            }
+        }
+    }
+}
+
+Copilot
+Sure, let’s continue with the explanation:
+
+compare(b1: Board, b2: Board): Boolean is a function that checks if two game boards are identical. It returns true if all corresponding cells in the two boards are the same, and false otherwise.
+over(board: Board): Boolean is a function that checks if the game is over. It prints the game board and a message indicating the result of the game (‘You lost!’, ‘We got a Tie match!’, or ‘You win!’). It returns true if the game is over, and false otherwise.
+main() is the main function where the game is played. It initializes the game board and builds the game tree. Then it enters a loop where it alternates between the player’s move and the computer’s move until the game is over. The player’s move is read from the console, and the computer’s move is determined by searching the game tree for the move that leads to the state with the highest score. The mapping m is used to map the numbers 1-9 to the corresponding cells in the game board (1 is the top-left cell, 2 is the top-middle cell, etc.). This is used to interpret the player’s move. The game continues in a loop until the over(board) function returns true, indicating that the game is over.
+
+You
+Help me with this part.
+var maximum = -10_000
+    var minimum = 10_000
+
+    if (turn == 'C') {
+        for (i in 0..<3) {
+            for (j in 0..<3) {
+                if (board.array[i][j] == '-') {
+                    val next = Board()
+                    for (k in 0..<3)
+                        next.array[k] = board.array[k].clone()
+
+                    next.array[i][j] = 'X'
+                    next.index = len
+                    store.add(next)
+                    mapping[len] = store.size - 1
+                    len++
+                    game[index].add(len - 1)
+                    val x = len - 1
+                    build(next, 'P', len - 1, depth + 1)
+                    maximum = max(maximum, store[mapping[x]!!].score)
+                }
+            }
+        }
+        store[mapping[index]!!].score = maximum - depth
+    }
+
+    if (turn == 'P') {
+        for (i in 0..<3) {
+            for (j in 0..<3) {
+                if (board.array[i][j] == '-') {
+                    val next = Board()
+                    for (k in 0..<3)
+                        next.array[k] = board.array[k].clone()
+
+                    next.array[i][j] = 'O'
+                    next.index = len
+                    store.add(next)
+                    mapping[len] = store.size - 1
+                    len++
+                    game[index].add(len - 1)
+                    val x = len - 1
+                    build(next, 'C', len - 1, depth + 1)
+                    minimum = min(minimum, store[mapping[x]!!].score)
+                }
+            }
+        }
+        store[mapping[index]!!].score = minimum + depth
+    }
+
+Copilot
+This part of the code is implementing a variant of the Minimax algorithm, which is a common AI technique used in two-player games like Tic-Tac-Toe. Here’s a breakdown:
+
+maximum and minimum are initialized to very large negative and positive values, respectively. These variables are used to keep track of the best score that the AI (the ‘C’ player) can achieve, and the worst score that the human player (the ‘P’ player) can achieve.
+If it’s the AI’s turn (turn == 'C'), the code iterates over all cells in the board. For each empty cell, it creates a new board state where the AI has made its move in that cell, and then recursively builds the game tree from that state. The score of the new state is compared with the current maximum score, and if it’s higher, the maximum score is updated. After considering all possible moves, the score of the current state is set to the maximum score found, minus the depth of the current state in the game tree. This depth adjustment encourages the AI to win as quickly as possible or to delay losing as long as possible.
+If it’s the human player’s turn (turn == 'P'), the process is similar, but the roles are reversed: the code looks for the minimum score instead of the maximum, because we’re assuming that the human player will play optimally and try to minimize the AI’s score.
+This algorithm allows the AI to look ahead and consider all possible sequences of moves up to a certain depth, and to make the move that leads to the best possible outcome assuming optimal play from both players. It’s a form of adversarial search, and is a fundamental technique in game-playing AI.
+
+You
+Explain check method.
+
+Copilot
+Sure, I’d be happy to explain the check function. This function is used to check the current state of the game board and determine if there’s a winner, a draw, or if the game is still ongoing.
+
+Here’s a breakdown of the check function:
+
+The function takes a Board object as an argument, which represents the current state of the game.
+It first checks all rows and columns for a win condition, which is three of the same character (‘X’ or ‘O’) in a row. It does this by iterating through each row and column and counting the number of 'X’s and 'O’s. If it finds three 'X’s or 'O’s in a row, it returns that character, indicating that player has won.
+If no winner is found in the rows or columns, it then checks the two diagonals for a win condition.
+If no winner is found in the diagonals, it checks if the game is a draw. It does this by counting the number of ‘-’ characters (which represent empty spaces). If there are no empty spaces left, it returns ‘D’, indicating a draw.
+If none of the above conditions are met, the function returns ‘-’, indicating the game is still ongoing.
+
+You
+Explain me this portion of main():
+print("Enter your position: ")
+        var choose = readln().toInt()
+
+        while (choose !in 1..9) {
+            print("Invalid move, Enter again: ")
+            choose = readln().toInt()
+        }
+
+        var i = m[choose]?.first
+        var j = m[choose]?.second
+
+        while (board.array[i!!][j!!] != '-') {
+            print("Invalid move, Enter again: ")
+            choose = readln().toInt()
+            i = m[choose]?.first
+            j = m[choose]?.second
+        }
+
+        board.array[i][j] = 'O'
+
+        if (over(board)) return
+
+        for (ij in 0..<game[board.index].size) {
+            if (compare(board, store[mapping[game[board.index][ij]]!!])) {
+                board = store[mapping[game[board.index][ij]]!!]
+
+                var ma = -1
+                var temp = Board()
+
+                for (jk in 0..<game[board.index].size) {
+                    if (store[mapping[game[board.index][jk]]!!].score > ma) {
+                        ma = store[mapping[game[board.index][jk]]!!].score
+                        temp = store[mapping[game[board.index][jk]]!!]
+                    }
+                }
+                board = temp
+                break
+            }
+        }
+
+Copilot
+This portion of the main function is handling the player’s move and the AI’s response move in the game of Tic-Tac-Toe. Here’s a breakdown:
+
+The player is asked to enter their move as a position number between 1 and 9. This corresponds to the positions on the Tic-Tac-Toe board, mapped as follows:
+1 2 3
+4 5 6
+7 8 9
+
+If the player enters a number outside this range, they are asked to enter their move again.
+The entered position is then converted to a row (i) and column (j) on the game board using the m map.
+If the chosen cell on the board is not empty (i.e., it already contains ‘X’ or ‘O’), the player is asked to enter their move again.
+Once a valid move is entered, the corresponding cell on the board is marked with ‘O’, representing the player’s move.
+The over(board) function is called to check if the game is over (i.e., if there’s a winner or a draw). If the game is over, the function returns and the game ends.
+If the game is not over, the AI makes its move. It does this by iterating over all possible next states of the game (represented by game[board.index]). For each possible state, it checks if the state is identical to the current state of the game (after the player’s move). If it finds an identical state, it updates the current board to that state.
+The AI then chooses the next state that has the highest score (i.e., the most desirable state for the AI). This is done by iterating over all possible next states again and keeping track of the state with the highest score.
+Finally, the current board is updated to the state with the highest score, and the loop continues with the player’s next move.
+This process continues until the game is over. The AI uses a game tree and the Minimax algorithm to determine the best move at each step, assuming optimal play from both the AI and the player.
+
+You
+I forgot what is mapping for?
+
+Copilot
+The mapping is a mutable map in Kotlin that is used to map the index of each game state to its corresponding Board object in the store list.
+When a new Board object is created, it’s added to the store list, and its index in the list is also stored in the mapping map. The key in the map is the index of the Board object, and the value is the index of that object in the store list.
+This allows for efficient lookup of Board objects based on their index. When the AI needs to evaluate the score of a particular game state, it can use the mapping map to quickly find that state’s Board object in the store list.
+
+In other words, mapping is a kind of “dictionary” that helps to quickly locate the Board objects in the store list.
+
+You
+What this line means?:
+board = temp
+break
+
+Copilot
+
+The line board = temp is updating the current game board to the board state that has the highest score. Here, temp is a Board object that represents the most desirable game state found in the current iteration of the game tree.
+The break statement is used to exit the current loop once the optimal board state has been found and assigned to board. This means that the AI has made its move, and the game can now proceed to the next turn.
+
+In summary, these lines are part of the AI’s decision-making process. After considering all possible moves, the AI chooses the move that leads to the game state with the highest score, and updates the current game board to that state. The loop then breaks because the AI’s turn is over.
